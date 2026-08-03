@@ -1,0 +1,68 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_VERSION: 24.0.7
+  DISTRO_NAME: bullseye
+  RUBY_VERSION: 3.1.2
+  POSTGRES_USER: postgres
+
+
+services:
+  - docker:$DOCKER_VERSION-dind
+
+image:
+  # This relies on our own project, dind-compose, which essentially installs
+  # the `docker-compose` command for gitlab CI to use.
+  # Make sure this repo is available to *all* internal projects.
+  name: image
+
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - cp development.env.default .env
+    - |
+      for tag in "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" "$CI_REGISTRY_IMAGE:latest"; do
+        docker pull $tag || true
+      done
+    - |
+      docker build \
+        --build-arg RUBY_VERSION=$RUBY_VERSION \
+        --build-arg DISTRO_NAME=$DISTRO_NAME \
+        --pull \
+        --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        --cache-from "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        --cache-from "$CI_REGISTRY_IMAGE:latest" \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" \
+        -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" \
+        -f Dockerfile .
+    - |
+      for tag in "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"; do
+        docker push $tag
+      done
+
+rspec:
+  stage: test
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    # Pull the image and tag it to match docker-compose naming convention
+    - docker pull "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" && docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" "pacing-tracker-backend_rails-app:latest-development"
+  script:
+    - cp development.env.default .env
+    # Start the required service(s) and wait for it to be ready
+    - docker-compose up -d postgres redis
+    - |
+      until docker-compose exec -T postgres pg_isready -U "$POSTGRES_USER"; do
+        echo 'Waiting for postgres to be ready...';
+        sleep 5;
+      done
+    - docker-compose run --rm -e RAILS_ENV=test runner bundle install # Install gems
+    - docker-compose run --rm -e RAILS_ENV=test runner rake db:create db:schema:load # Prepare database
+    - docker-compose run --rm -e RAILS_ENV=test runner rake spec # Run tests
+  after_script:
+    # Optional: Clean up after the tests
+    - docker-compose down -v

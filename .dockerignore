@@ -1,0 +1,53 @@
+# Based on https://gist.github.com/neckhair/ace5d1679dd896b71403fda4bc217b9e
+
+# Docker files
+Dockerfile*
+docker-compose*
+
+# Git / CI
+.git
+.github
+.circleci
+.gitlab-ci.yml
+**.md
+
+# [DN] Force us to use an env var for Rails credentials
+config/master.key
+
+# [DN] Don't use Figaro with docker because it will conflict with .env
+config/application.yml
+
+# Rails app
+.env
+.env.*
+*.env.default
+*.rbc
+db/*.sqlite3
+db/*.sqlite3-journal
+public/system
+.ruby-version
+.ruby-gemset
+.rvmrc
+spec/tmp
+capybara-*.html
+coverage/
+**.orig
+log
+tmp
+
+# OS X
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

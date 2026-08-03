@@ -1,0 +1,12 @@
+## [DN] Disabled here and in environments/*, also not included in railties in application.rb
+
+# development:
+#   adapter: async
+
+# test:
+#   adapter: test
+
+# production:
+#   adapter: redis
+#   url: <%= "#{ENV.fetch('REDIS_URL')}/0" %>
+#   channel_prefix: rails_backend_production

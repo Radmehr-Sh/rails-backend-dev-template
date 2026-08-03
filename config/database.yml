@@ -1,0 +1,24 @@
+default: &default
+  adapter:  postgresql
+  encoding: unicode
+  host:     <%= ENV.fetch('POSTGRES_HOST') %>
+  username: <%= ENV.fetch('POSTGRES_USER') %>
+  password: <%= ENV.fetch('POSTGRES_PASSWORD') %>
+  database: <%= ENV.fetch('POSTGRES_DB')   %>
+  port:     <%= ENV.fetch('POSTGRES_PORT') %>
+  pool:     <%= ENV.fetch('POSTGRES_POOL') %>
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+  database: <%= "#{ENV.fetch('POSTGRES_DB')}_test" %>
+
+production:
+  <<: *default
+  # DigitalOcean uses PgBouncer for connection pools so we must configure this
+  # for our DBaaS. See this for more info:
+  # https://guides.rubyonrails.org/configuring.html#configuring-a-postgresql-database
+  prepared_statements: false
+  advisory_locks: false

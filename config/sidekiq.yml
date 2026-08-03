@@ -1,0 +1,8 @@
+
+# The order of these queues defines their priority. Try to avoid having many,
+# otherwise you may see performance issues. Read through this wiki for more info
+# https://github.com/mperham/sidekiq/wiki/Advanced-Options#queues
+queues:
+  # - critical
+  - default
+  # - low
